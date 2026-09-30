@@ -141,18 +141,17 @@ class GroupMemoryPlugin(Star):
 
     @filter.command("gm_show")
     async def gm_show(self, event: AstrMessageEvent, qq: str = ""):
-        """测试：查看某 QQ 成员的档案。用法 /gm_show <qq>"""
+        """测试：查看成员档案。用法 /gm_show <qq号或自然语言查询意图>"""
         if not self.db:
             yield event.plain_result("数据库未初始化，请检查插件配置。")
             return
         if not qq.strip():
-            yield event.plain_result("用法：/gm_show <qq号>")
+            yield event.plain_result("用法：/gm_show <qq号或查询意图>")
             return
-        member = await self.db.get_by_qq(int(qq.strip()))
-        if member is None:
-            yield event.plain_result(f"未找到 QQ 为 {qq} 的成员。")
-            return
-        yield event.plain_result(QueryGroupMemberTool._format_member(member))
+        result = await self.db.query(qq.strip())
+        import json as _json
+
+        yield event.plain_result(_json.dumps(result, ensure_ascii=False, indent=2))
 
     async def terminate(self) -> None:
         """插件卸载/停用时调用。"""

@@ -35,6 +35,78 @@ def get_current_db() -> "GroupMemoryDB | None":
     return _current_db
 
 
+# 字段值词表：用于把自然语言 query 定向到具体字段。
+# 遍历每个字段的「值词」，若 query 中包含某个值词，
+# 则用该值词在该字段上做 LIKE 模糊搜索。
+_FIELD_INTENT_MAP: dict[str, list[str]] = {
+    "occupation": [
+        "教师", "老师", "程序员", "开发", "学生", "医生", "护士",
+        "设计师", "工程师", "运营", "产品经理", "产品", "警察", "律师",
+        "会计", "销售", "老板", "司机", "厨师", "主播", "自由职业",
+        "公务员", "科研", "金融", "画家", "作家", "摄影师", "建筑师",
+    ],
+    "hobby": [
+        "摄影", "画画", "绘画", "唱歌", "跳舞", "运动", "健身", "篮球",
+        "足球", "音乐", "旅游", "阅读", "看动漫", "打游戏", "游戏",
+        "打代码", "编程", "钓鱼", "烘焙", "做饭", "滑雪", "游泳",
+    ],
+    "location": [
+        "美国", "中国", "上海", "北京", "深圳", "广州", "杭州", "成都",
+        "重庆", "武汉", "南京", "西安", "苏州", "天津", "日本", "韩国",
+        "英国", "法国", "德国", "澳大利亚", "加拿大", "新加坡", "美国",
+    ],
+}
+
+
+def _extract_qq(query: str) -> int | None:
+    """若 query 里包含纯数字（可能带 qq 字样），视为 QQ 号。"""
+    import re
+
+    # 匹配连续的 5~12 位数字，通常为 QQ 号
+    m = re.search(r"\d{5,12}", query)
+    if m:
+        try:
+            return int(m.group())
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_intent(query: str) -> tuple[str | None, str]:
+    """把自然语言 query 解析为 (目标字段, 命中的值词)。
+
+    遍历每个字段的值词，若 query 包含某值词，则用该值词在该字段做
+    LIKE 模糊搜索。优先匹配较长的值词（长词更具体）。
+    返回 (None, query) 表示未命中任何值词，走全字段模糊搜索。
+    """
+    best: tuple[str | None, str] = (None, query)
+    best_len = 0
+    for field, keywords in _FIELD_INTENT_MAP.items():
+        for kw in keywords:
+            if kw in query and len(kw) > best_len:
+                best = (field, kw)
+                best_len = len(kw)
+    return best
+
+
+# 通用停用词，用于在走全字段模糊搜索前清理 query，
+# 避免“找 LJJ”这种因停用词干扰而匹配不到。
+_STOPWORDS = [
+    "有没有", "是不是", "找一下", "查一下", "搜索", "查询", "查找",
+    "找", "谁", "查", "是", "的", "有", "在", "请", "帮我", "帮忙",
+    "这个群", "群里", "的人", "成员", "人", "吗", "？", "?", "？",
+]
+
+
+def _clean_query(query: str) -> str:
+    """去除 query 中的通用停用词，返回关键部分。"""
+    cleaned = query
+    for w in _STOPWORDS:
+        cleaned = cleaned.replace(w, "")
+    cleaned = cleaned.strip()
+    return cleaned or query
+
+
 class GroupMemoryDB:
     """封装 MySQL 的异步引擎、会话工厂与建库/建表/查询方法。"""
 
@@ -146,6 +218,58 @@ class GroupMemoryDB:
         async with self.session() as session:
             result = await session.execute(
                 select(MemberProfile).order_by(MemberProfile.qq).limit(limit)
+            )
+            members = result.scalars().all()
+            return [self._to_dict(m) for m in members]
+
+    async def query(self, query: str, limit: int = 20) -> dict[str, Any]:
+        """统一查询入口：解析自然语言 query 并返回结构化结果。
+
+        返回结构：{"query": ..., "matched_count": N, "members": [...]}
+        内部优先识别 QQ 号（精确查）、字段意图（定向字段模糊查），
+        其余情况走全字段模糊搜索。
+        """
+        # 1) 尝试识别 QQ 号 → 精确查询
+        qq = _extract_qq(query)
+        if qq is not None:
+            member = await self.get_by_qq(qq)
+            members = [member] if member else []
+            return {
+                "query": query,
+                "matched_count": len(members),
+                "members": members,
+            }
+
+        # 2) 字段意图解析 → 定向字段模糊查
+        field, keyword = _parse_intent(query)
+        if field is not None:
+            members = await self._search_by_field(field, keyword, limit)
+            return {
+                "query": query,
+                "matched_count": len(members),
+                "members": members,
+            }
+
+        # 3) 兜底：清理停用词后走全字段模糊搜索
+        cleaned = _clean_query(query)
+        members = await self.search_members(cleaned, limit)
+        return {
+            "query": query,
+            "matched_count": len(members),
+            "members": members,
+        }
+
+    async def _search_by_field(
+        self, field: str, keyword: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """在指定字段上做 LIKE 模糊搜索。"""
+        column = getattr(MemberProfile, field, None)
+        if column is None:
+            return []
+        pattern = f"%{keyword}%"
+        async with self.session() as session:
+            result = await session.execute(
+                select(MemberProfile).where(column.like(pattern)).limit(limit)
             )
             members = result.scalars().all()
             return [self._to_dict(m) for m in members]
