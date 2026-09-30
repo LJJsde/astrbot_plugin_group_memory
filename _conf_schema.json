@@ -1,0 +1,29 @@
+{
+  "db_host": {
+    "description": "MySQL 主机地址（AstrBot 与 MySQL 同 docker 网络时填服务名 mysql）",
+    "type": "string",
+    "default": "mysql",
+    "hint": "若与 MySQL 在同一 docker-compose 网络内，填服务名（如 mysql）；否则填 IP 或域名。"
+  },
+  "db_port": {
+    "description": "MySQL 端口",
+    "type": "int",
+    "default": 3306
+  },
+  "db_user": {
+    "description": "MySQL 用户名",
+    "type": "string",
+    "default": "root"
+  },
+  "db_password": {
+    "description": "MySQL 密码",
+    "type": "string",
+    "default": "",
+    "secret": true
+  },
+  "db_name": {
+    "description": "数据库名",
+    "type": "string",
+    "default": "group_memory"
+  }
+}

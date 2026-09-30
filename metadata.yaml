@@ -1,0 +1,6 @@
+name: astrbot_plugin_group_memory # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
+display_name: 群成员记忆 # 用于展示的名字
+desc: 为 AstrBot 提供基于 MySQL 的群成员档案查询能力，让大模型按需读取成员信息并据此调整回复，节省 prompt 并支持长期记忆。
+version: v0.1.0 # 插件版本号
+author: ljj
+repo: https://github.com/yourname/astrbot_plugin_group_memory # 插件的仓库地址

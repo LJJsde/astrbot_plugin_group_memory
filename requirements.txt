@@ -1,0 +1,4 @@
+# SQLAlchemy 2.x (异步)
+SQLAlchemy>=2.0.0
+# asyncmy：SQLAlchemy 的异步 MySQL 方言驱动
+asyncmy>=0.2.9

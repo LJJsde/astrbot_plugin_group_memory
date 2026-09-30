@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>群成员记忆管理</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --text: #1a1a1a;
+        --border: #e0e0e0;
+        --accent: #3b82f6;
+        --danger: #ef4444;
+        --muted: #6b7280;
+      }
+      [data-theme="dark"] {
+        --bg: #1a1a1a;
+        --text: #e0e0e0;
+        --border: #3a3a3a;
+        --accent: #60a5fa;
+        --danger: #f87171;
+        --muted: #9ca3af;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 24px;
+        max-width: 960px;
+      }
+      h1 { font-size: 20px; margin: 0 0 16px; }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      input, textarea {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 14px;
+      }
+      textarea { width: 100%; min-height: 60px; resize: vertical; }
+      .field { margin-bottom: 10px; }
+      .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+      button {
+        border: none;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-size: 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+      }
+      button.secondary { background: var(--border); color: var(--text); }
+      button.danger { background: var(--danger); }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+      th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+      th { color: var(--muted); font-weight: 600; }
+      .status { color: var(--muted); font-size: 13px; margin-top: 8px; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .form-full { grid-column: 1 / -1; }
+      .actions { display: flex; gap: 8px; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>群成员记忆管理</h1>
+
+    <div class="toolbar">
+      <input id="searchInput" placeholder="搜索昵称/备注..." style="flex:1; min-width:200px;" />
+      <button id="searchBtn">搜索</button>
+      <button id="resetBtn" class="secondary">显示全部</button>
+      <button id="newBtn">新增成员</button>
+    </div>
+
+    <div id="formWrap" style="display:none;">
+      <div class="form-grid">
+        <div class="field"><label>QQ 号（必填，仅新增时可改）</label><input id="f_qq" type="text" /></div>
+        <div class="field"><label>昵称</label><input id="f_nickname" type="text" /></div>
+        <div class="field"><label>群名片</label><input id="f_card_name" type="text" /></div>
+        <div class="field"><label>职业</label><input id="f_occupation" type="text" /></div>
+        <div class="field"><label>地区</label><input id="f_location" type="text" /></div>
+        <div class="field form-full"><label>爱好</label><textarea id="f_hobby"></textarea></div>
+        <div class="field form-full"><label>备注</label><textarea id="f_remark"></textarea></div>
+      </div>
+      <div class="actions">
+        <button id="saveBtn">保存</button>
+        <button id="cancelBtn" class="secondary">取消</button>
+      </div>
+    </div>
+
+    <table id="membersTable">
+      <thead>
+        <tr>
+          <th>QQ</th><th>昵称</th><th>群名片</th><th>职业</th><th>地区</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="status" id="status"></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
